@@ -25,6 +25,11 @@ app.all('*', function(req, res, next) {
   next();
 });
 
+router.route("/")
+  .get((req, res) => {
+    res.send("Waking up Heroku API server...")
+  })
+
 router.route("/api")
   .get((req,res) => {
     ref.child("todos").on("value", (snapshot) => {
