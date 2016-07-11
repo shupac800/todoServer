@@ -27,13 +27,13 @@ const ref = firebase.database().ref();
 router.route("/")
   .get((req, res) => {
     res.send("Waking up Heroku API server...")
-  })
+  });
 
 router.route("/api")
-  .get((req,res) => {
+  .get((req, res) => {
     ref.child("task").on("value", snapshot => {
       res.json(snapshot.val());
-    }, (err) => {
+    }, err => {
       res.json({"message" : "error: " + err});
     });
   })
@@ -73,7 +73,7 @@ router.route("/api")
         res.json({"message" : "error: " + err});
       }
     });
-  })
+  });
 
 app.use('/', router);
 
