@@ -1,10 +1,19 @@
 "use strict";
 
-const express = require('express');
+const express = require("express");
 const app = express();
 const router = express.Router();
-const bodyParser = require('body-parser');
-const firebase = require('firebase');
+const bodyParser = require("body-parser");
+const firebase = require("firebase");
+
+app.use(bodyParser.json());
+
+app.all('*', function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
 firebase.initializeApp({
   apiKey: "AIzaSyAZPHuMoKrlNOvY6bszaBX4yrityBrsHaw",
@@ -15,16 +24,6 @@ firebase.initializeApp({
 
 const ref = firebase.database().ref();
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-app.all('*', function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
-
 router.route("/")
   .get((req, res) => {
     res.send("Waking up Heroku API server...")
@@ -32,40 +31,49 @@ router.route("/")
 
 router.route("/api")
   .get((req,res) => {
-    ref.child("todos").on("value", (snapshot) => {
-      res.json({"message" : "read OK!",
-                "data" : snapshot.val()});
+    ref.child("task").on("value", snapshot => {
+      res.json(snapshot.val());
     }, (err) => {
       res.json({"message" : "error: " + err});
     });
   })
   .post((req, res) => {
     // create a new empty record and get its key
-    const key = firebase.database().ref().child("todos").push().key;
+    const key = firebase.database().ref().child("task").push().key;
     // update new record with k:v pairs in req.body
-    ref.child("todos").child(key).update(req.body, (err) => {
+    ref.child("task").child(key).update(req.body, err => {
       if (!err) {
         let returnObj = req.body;
         returnObj.key = key;
-        res.json({"message" : "post OK!",
-                  "data" : returnObj});
+        res.json(returnObj);
       } else {
         res.json({"message" : "error: " + err});
       }
     });
   })
   .put((req, res) => {
-    let thisRecord = ref.child("todos").child(req.query.key);
-    let flag = req.query.isDone === "true" ? true : false;
-    thisRecord.update({isDone: flag}, (err) => {
+    let thisRecord = ref.child("task").child(req.query.key);
+    // convert string to boolean
+    const flag = req.query.isDone === "true" ? true : false;
+    thisRecord.update({isDone: flag}, err => {
       if (!err) {
-        res.json({"message" : "update OK!",
-                  "data" : flag});
+        res.json({"data" : flag});
       } else {
         res.json({"message" : "error: " + err});
       }
     });
-  });
+  })
+  .delete((req, res) => {
+    console.log("deleting...");
+    ref.child("task").child(req.query.key).remove(err => {
+    if (!err) {
+        console.log("deleted",req.query.key);
+        res.json({"message" : "delete OK!"});
+      } else {
+        res.json({"message" : "error: " + err});
+      }
+    });
+  })
 
 app.use('/', router);
 
